@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: echo-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/togo-matsu/k8s-manifests.git' # 実際のGitリポジトリURL
+    targetRevision: HEAD
+    path: apps/echo-app
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

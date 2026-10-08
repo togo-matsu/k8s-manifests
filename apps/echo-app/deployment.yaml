@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-app
+  namespace: default
+  labels:
+    app: echo-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo-app
+  template:
+    metadata:
+      labels:
+        app: echo-app
+    spec:
+      containers:
+      - name: echo-app
+        image: e2eteam/echoserver:2.2
+        ports:
+        - containerPort: 8080
