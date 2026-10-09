@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'apps/echo-app/**'
 
 env:
   REGISTRY: ghcr.io
