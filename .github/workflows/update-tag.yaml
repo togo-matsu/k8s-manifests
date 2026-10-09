@@ -1,0 +1,29 @@
+name: Auto Create Tag Update PR
+
+on:
+  repository_dispatch:
+    types: [update-image-tag]
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update image tag in deployment.yaml
+        run: |
+          NEW_TAG="${{ github.event.client_payload.image_tag }}"
+          sed -i "s|image: ghcr.io/.*|image: ghcr.io/${{ github.repository_owner }}/echo-app:${NEW_TAG}|g" apps/echo-app/deployment.yaml
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: update echo-app tag to ${{ github.event.client_payload.image_tag }}"
+          title: "自動更新: echo-app タグ -> ${{ github.event.client_payload.image_tag }}"
+          body: "アプリ側のCI成功に伴う自動イメージタグ更新PRです。"
+          branch: "auto-update-${{ github.event.client_payload.image_tag }}"
