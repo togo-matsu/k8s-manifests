@@ -1,2 +1,2 @@
-FROM hashicorp/http-echo:latest
+FROM hashicorp/http-echo:0.2.3
 EXPOSE 5678
