@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: webapp-rollout
+  namespace: default
+spec:
+  replicas: 5
+  strategy:
+    canary:
+      # トラフィックを段階的に分けるためのステップ定義
+      steps:
+      - setWeight: 20
+      - pause: { duration: 5m } # 20%の状態で5分間自動一時停止（人間や外形監視の判定を待つ）
+      - setWeight: 50
+      - pause: { duration: 2m }
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+    spec:
+      containers:
+      - name: web
+        image: nginx:alpine
+        ports:
+        - containerPort: 8080
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+---
+# Argo Rollouts と連携する Kubernetes Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: webapp-svc
+  namespace: default
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: webapp
