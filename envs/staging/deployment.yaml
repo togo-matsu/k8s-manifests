@@ -2,11 +2,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: echo-app
-  namespace: default
+  namespace: staging
   labels:
     app: echo-app
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: echo-app
@@ -17,6 +17,6 @@ spec:
     spec:
       containers:
       - name: echo-app
-        image: e2eteam/echoserver:2.2
+        image: ghcr.io/<your-org>/echo-app:latest # 初期値、または直近のタグ
         ports:
         - containerPort: 8080

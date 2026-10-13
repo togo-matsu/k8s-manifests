@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: echo-app
+  name: echo-app-production
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/togo-matsu/k8s-manifests.git' # 実際のGitリポジトリURL
+    repoURL: 'https://github.com/togo-matsu/k8s-manifests.git'
     targetRevision: HEAD
-    path: apps/echo-app
+    path: envs/production
   destination:
     server: 'https://kubernetes.default.svc'
-    namespace: default
+    namespace: production
   syncPolicy:
     automated:
       prune: true
