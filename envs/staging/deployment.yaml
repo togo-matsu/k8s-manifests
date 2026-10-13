@@ -17,6 +17,6 @@ spec:
     spec:
       containers:
       - name: echo-app
-        image: ghcr.io/<your-org>/echo-app:latest # 初期値、または直近のタグ
+        image: ghcr.io/togo-matsu/echo-app:b5ff544186fbfadfd3d5ff40adf878a0a02a51a8
         ports:
         - containerPort: 8080
