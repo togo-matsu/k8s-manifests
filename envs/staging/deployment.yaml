@@ -3,8 +3,6 @@ kind: Deployment
 metadata:
   name: echo-app
   namespace: staging
-  labels:
-    app: echo-app
 spec:
   replicas: 1
   selector:
@@ -15,6 +13,8 @@ spec:
       labels:
         app: echo-app
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret  # ← ここを追加
       containers:
       - name: echo-app
         image: ghcr.io/togo-matsu/echo-app:b5ff544186fbfadfd3d5ff40adf878a0a02a51a8
