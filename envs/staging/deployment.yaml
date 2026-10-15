@@ -17,6 +17,6 @@ spec:
         - name: ghcr-secret  # ← ここを追加
       containers:
       - name: echo-app
-        image: ghcr.io/togo-matsu/echo-app:b5ff544186fbfadfd3d5ff40adf878a0a02a51a8
+        image: ghcr.io/togo-matsu/echo-app:b5ff544
         ports:
         - containerPort: 8080
