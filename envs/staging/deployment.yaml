@@ -18,5 +18,7 @@ spec:
       containers:
       - name: echo-app
         image: ghcr.io/togo-matsu/echo-app:b5ff544
+        args:
+          - "-text=Hello from Kubernetes!"  # アプリが求めているテキスト引数を指定
         ports:
         - containerPort: 8080
