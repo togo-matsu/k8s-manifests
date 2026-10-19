@@ -17,7 +17,7 @@ spec:
         - name: ghcr-secret  # ← ここを追加
       containers:
       - name: echo-app
-        image: ghcr.io/togo-matsu/echo-app:6ab81ae5bb628c15c230cb87a40efa4d68291702
+        image: ghcr.io/togo-matsu/echo-app:latest
         args:
           - "-text=Hello from Kubernetes!"  # アプリが求めているテキスト引数を指定
         ports:
