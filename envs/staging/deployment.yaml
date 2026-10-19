@@ -13,13 +13,9 @@ spec:
       labels:
         app: echo-app
     spec:
-      imagePullSecrets:
-        - name: ghcr-secret  # ← ここを追加
       containers:
       - name: echo-app
-        image: ghcr.io/togo-matsu/echo-app:latest
-        args:
-          - "-text=Hello from Kubernetes!"  # アプリが求めているテキスト引数を指定
+        image: ghcr.io/togo-matsu/echo-app:6ab81ae
         ports:
           - containerPort: 8080
         env:
