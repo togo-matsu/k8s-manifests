@@ -4,7 +4,6 @@ metadata:
   name: echo-app
   namespace: staging
 spec:
-  replicas: 2
   selector:
     matchLabels:
       app: echo-app
