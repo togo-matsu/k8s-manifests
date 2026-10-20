@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: echo-app
-        image: ghcr.io/<your-org>/echo-app:latest
+        image: ghcr.io/togo-matsu/echo-app:latest
         ports:
         - containerPort: 8080
         env:
