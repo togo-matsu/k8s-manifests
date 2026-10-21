@@ -30,7 +30,12 @@ jobs:
           git commit -m "chore(staging): update echo-app tag to ${NEW_TAG}" || echo "No changes to commit"
           git push
 
-      # 2. 本番環境のタグは別ブランチを切って PR を作成（安全性確保）
+      # 2. 本番環境のタグ書き換え ＆ PR 作成（安全性確保）
+      - name: Update Production Rollout
+        run: |
+          NEW_TAG="${{ github.event.client_payload.image_tag }}"
+          sed -i "s|image: ghcr.io/.*/echo-app:.*|image: ghcr.io/${{ github.repository_owner }}/echo-app:${NEW_TAG}|g" envs/production/rollout.yaml
+
       - name: Create Production PR
         uses: peter-evans/create-pull-request@v6
         with:

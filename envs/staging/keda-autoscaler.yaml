@@ -1,0 +1,21 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: echo-app-autoscaler
+  namespace: staging
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: echo-app
+  pollingInterval: 15        # メトリクスを確認する間隔（秒）
+  cooldownPeriod: 30         # 負荷低下後にスケールダウンを開始するまでの待機時間（秒）
+  minReplicaCount: 1         # 最小 Pod 数
+  maxReplicaCount: 5         # 最大 Pod 数
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+        metricName: http_requests_per_second
+        query: sum(rate(container_network_receive_bytes_total{namespace="staging",pod=~"echo-app-.*"}[1m]))
+        threshold: '1000'
