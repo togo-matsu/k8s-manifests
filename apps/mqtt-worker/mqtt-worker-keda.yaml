@@ -1,0 +1,21 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: mqtt-worker-scaler
+  namespace: mqtt
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mqtt-worker
+  pollingInterval: 5
+  cooldownPeriod: 30
+  minReplicaCount: 1       # 常時 1 台を稼働させてメッセージ待機（取りこぼし防止）
+  maxReplicaCount: 3       # バースト時は最大 3 台へ自動スケールアウト
+  triggers:
+  - type: prometheus
+    metadata:
+      serverAddress: http://monitoring-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090
+      metricName: emqx_messages_received_rate
+      query: sum(rate(emqx_messages_received[30s])) or on() vector(0)
+      threshold: '1'        # 1 msg/s を超えたらスケールアウト開始

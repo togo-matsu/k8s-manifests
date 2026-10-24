@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: emqx-monitor
+  namespace: mqtt
+  labels:
+    release: monitoring  # kube-prometheus-stack のセレクターに合致
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: emqx  # または emqx-dashboard のラベル
+  endpoints:
+  - port: dashboard
+    path: /api/v5/prometheus/stats
+    interval: 10s
+    scrapeTimeout: 5s

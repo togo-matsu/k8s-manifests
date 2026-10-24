@@ -1,0 +1,115 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: storage-gateway-pvc
+  namespace: mqtt
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: storage-gateway
+  namespace: mqtt
+  labels:
+    app: storage-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: storage-gateway
+  template:
+    metadata:
+      labels:
+        app: storage-gateway
+    spec:
+      containers:
+      - name: gateway
+        image: python:3.11-slim
+        command:
+        - /bin/sh
+        - -c
+        - |
+          pip install --no-cache-dir fastapi uvicorn "paho-mqtt<2.0.0"
+          python -m uvicorn main:app --host 0.0.0.0 --port 8000 --app-dir /app
+        ports:
+        - containerPort: 8000
+        env:
+        - name: STORAGE_BACKEND
+          value: "local"
+        - name: LOCAL_STORAGE_DIR
+          value: "/data"
+        - name: MQTT_BROKER
+          value: "emqx-service.mqtt.svc.cluster.local"
+        volumeMounts:
+        - name: code
+          mountPath: /app
+        - name: storage
+          mountPath: /data
+        resources:
+          limits:
+            cpu: 300m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+      volumes:
+      - name: code
+        configMap:
+          name: storage-gateway-code
+      - name: storage
+        persistentVolumeClaim:
+          claimName: storage-gateway-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: storage-gateway-service
+  namespace: mqtt
+spec:
+  selector:
+    app: storage-gateway
+  ports:
+  - port: 8000
+    targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: storage-gateway-ingress
+  namespace: mqtt
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /ota
+        pathType: Prefix
+        backend:
+          service:
+            name: storage-gateway-service
+            port:
+              number: 8000
+      - path: /camera
+        pathType: Prefix
+        backend:
+          service:
+            name: storage-gateway-service
+            port:
+              number: 8000
+      - path: /healthz
+        pathType: Prefix
+        backend:
+          service:
+            name: storage-gateway-service
+            port:
+              number: 8000

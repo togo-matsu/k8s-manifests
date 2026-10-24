@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mqtt
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emqx
+  namespace: mqtt
+  labels:
+    app: emqx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emqx
+  template:
+    metadata:
+      labels:
+        app: emqx
+    spec:
+      containers:
+      - name: emqx
+        image: emqx/emqx:5.8.5
+        ports:
+        - name: mqtt
+          containerPort: 1883
+        - name: mqtt-ws
+          containerPort: 8083
+        - name: dashboard
+          containerPort: 18083
+        env:
+        # 初期ノード名設定
+        - name: EMQX_NODE__NAME
+          value: "emqx@127.0.0.1"
+        - name: EMQX_DASHBOARD__DEFAULT_USERNAME
+          value: "admin"
+        - name: EMQX_DASHBOARD__DEFAULT_PASSWORD
+          value: "1021cloudy" # 任意のパスワードに変更可能
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+---
+# MQTT 通信用の LoadBalancer Service (10.0.0.201 でバインド)
+apiVersion: v1
+kind: Service
+metadata:
+  name: emqx-service
+  namespace: mqtt
+spec:
+  type: LoadBalancer
+  allocateLoadBalancerNodePorts: false
+  ports:
+  - name: mqtt
+    port: 1883
+    targetPort: 1883
+    protocol: TCP
+  - name: mqtt-ws
+    port: 8083
+    targetPort: 8083
+    protocol: TCP
+  selector:
+    app: emqx
+---
+# Webダッシュボード用の Service (NodePort または Ingress 向け)
+apiVersion: v1
+kind: Service
+metadata:
+  name: emqx-dashboard
+  namespace: mqtt
+spec:
+  type: NodePort
+  ports:
+  - name: dashboard
+    port: 18083
+    targetPort: 18083
+    nodePort: 31083
+  selector:
+    app: emqx

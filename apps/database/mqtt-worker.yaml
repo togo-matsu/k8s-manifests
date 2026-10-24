@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mqtt-worker-script
+  namespace: mqtt
+data:
+  worker.py: |
+    import os
+    import sys
+    import json
+    import time
+    import paho.mqtt.client as mqtt
+    import psycopg2
+    from psycopg2.extras import Json
+
+    MQTT_BROKER = os.getenv("MQTT_BROKER", "emqx-service.mqtt.svc.cluster.local")
+    MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
+    MQTT_TOPIC = os.getenv("MQTT_TOPIC", "devices/+/telemetry")
+
+    DB_HOST = os.getenv("DB_HOST", "postgres-service.mqtt.svc.cluster.local")
+    DB_PORT = int(os.getenv("DB_PORT", 5432))
+    DB_NAME = os.getenv("POSTGRES_DB", "iot_data")
+    DB_USER = os.getenv("POSTGRES_USER", "mqtt_user")
+    DB_PASS = os.getenv("POSTGRES_PASSWORD", "mqtt_password")
+
+    print("[Worker] Initializing worker process...", flush=True)
+
+    # 1. PostgreSQL 接続待機
+    db_conn = None
+    while not db_conn:
+        try:
+            print(f"[Worker] Connecting to DB ({DB_HOST}:{DB_PORT})...", flush=True)
+            db_conn = psycopg2.connect(
+                host=DB_HOST,
+                port=DB_PORT,
+                dbname=DB_NAME,
+                user=DB_USER,
+                password=DB_PASS,
+                connect_timeout=5
+            )
+            db_conn.autocommit = True
+            cursor = db_conn.cursor()
+            print("[Worker] Connected to PostgreSQL successfully!", flush=True)
+        except Exception as e:
+            print(f"[Worker] DB Connection waiting: {e}", flush=True)
+            time.sleep(3)
+
+    # 2. MQTT コールバック
+    def on_connect(client, userdata, flags, rc):
+        print(f"[Worker] Connected to EMQX Broker with result code: {rc}", flush=True)
+        client.subscribe(MQTT_TOPIC)
+        print(f"[Worker] Subscribed to topic: {MQTT_TOPIC}", flush=True)
+
+    def on_message(client, userdata, msg):
+        global db_conn, cursor
+        topic = msg.topic
+        payload_str = msg.payload.decode('utf-8', errors='replace')
+        print(f"[Worker] Message received on topic: {topic}", flush=True)
+
+        try:
+            payload_json = json.loads(payload_str)
+        except Exception:
+            payload_json = {"raw": payload_str}
+
+        parts = topic.split('/')
+        device_id = payload_json.get("device_id", parts[1] if len(parts) >= 2 else "unknown")
+
+        try:
+            cursor.execute(
+                "INSERT INTO telemetry (device_id, topic, payload) VALUES (%s, %s, %s);",
+                (device_id, topic, Json(payload_json))
+            )
+            print(f"[Worker] Saved data to PostgreSQL for device: {device_id}", flush=True)
+        except Exception as err:
+            print(f"[Worker] DB Insert error: {err}", flush=True)
+
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    # 3. EMQX 接続待機
+    connected = False
+    while not connected:
+        try:
+            print(f"[Worker] Connecting to EMQX Broker ({MQTT_BROKER}:{MQTT_PORT})...", flush=True)
+            client.connect(MQTT_BROKER, MQTT_PORT, 60)
+            connected = True
+        except Exception as e:
+            print(f"[Worker] EMQX Connection waiting: {e}", flush=True)
+            time.sleep(3)
+
+    client.loop_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mqtt-worker
+  namespace: mqtt
+  labels:
+    app: mqtt-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mqtt-worker
+  template:
+    metadata:
+      labels:
+        app: mqtt-worker
+    spec:
+      containers:
+      - name: worker
+        image: python:3.11-slim
+        command:
+        - /bin/sh
+        - -c
+        - |
+          pip install --no-cache-dir "paho-mqtt<2.0.0" psycopg2-binary
+          python -u /app/worker.py
+        env:
+        - name: MQTT_BROKER
+          value: "emqx-service.mqtt.svc.cluster.local"
+        - name: DB_HOST
+          value: "postgres-service.mqtt.svc.cluster.local"
+        envFrom:
+        - secretRef:
+            name: postgres-secret
+        volumeMounts:
+        - name: script-vol
+          mountPath: /app
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+      volumes:
+      - name: script-vol
+        configMap:
+          name: mqtt-worker-script
