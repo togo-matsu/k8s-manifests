@@ -1,0 +1,8 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: "mqtt-pool"
+  namespace: kube-system
+spec:
+  blocks:
+    - cidr: "10.0.0.201/32"

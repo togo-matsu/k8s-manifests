@@ -1,0 +1,15 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: iot-pubsub
+  namespace: mqtt
+spec:
+  type: pubsub.mqtt3
+  version: v1
+  metadata:
+  - name: url
+    value: "tcp://emqx-service.mqtt.svc.cluster.local:1883"
+  - name: qos
+    value: "1"
+  - name: cleanSession
+    value: "true"
